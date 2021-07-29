@@ -1,0 +1,11 @@
+tests/build/include/
+tests/build/src/
+tests/unit/tests/CMakeLists.txt
+
+contexts/ul-exp/include/
+contexts/ul-exp/src/ocf/
+contexts/ul-exp/bench
+contexts/ul-exp/cache-sock
+contexts/ul-exp/core-sock
+
+*.o
