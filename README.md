@@ -2,12 +2,19 @@
 
 This is a demo of [our FAST'21 paper on **non-hierarchical caching** (NHC)](https://www.usenix.org/conference/fast21/presentation/wu-kan). This version of implementation is based on Guanzhou's fork of [Intel's Open-CAS Framework (OCF)](https://github.com/Open-CAS/ocf) and an event-driven flash SSD simulator called [Flashsim](https://github.com/josehu07/flashsim).
 
-NHC was originally named multi-factor caching (MFC). The old name is used in this demo code. Following the OCF naming convention, the capacity device is named *core* and the performant device is named *cache*. Tested to work on Ubuntu 20.04.
+NHC was originally named multi-factor caching (MFC). The old name is used in this demo code. Following the OCF naming convention, the capacity device is named *core* and the performant device is named *cache*.
+
+Tested to work on Ubuntu 20.04.
 
 
 ## Overview
 
 Folder structure:
+
+```text
+# This is the Flashsim submodule
+flashsim/
+```
 
 ```text
 # This is the user-level context
@@ -44,12 +51,7 @@ tests/
 Makefile        # Don't do `make` in root path directly
 ```
 
-Everything we have added into the OCF library are marked by `[Orthus FLAG BEGIN]` and `[Orthus FLAG END]` for easier future reference.
-
-```text
-# This is the Flashsim submodule
-flashsim/
-```
+Everything we have added into the OCF library is marked by `[Orthus FLAG BEGIN]` and `[Orthus FLAG END]` for easier future reference.
 
 
 ## Preparation
@@ -79,16 +81,19 @@ $ cd contexts/ul-exp
 $ make
 ```
 
-This will link the OCF library to this location and compile it together with the context's main file into a single executable `./bench`. Please do all the following work at this `ul-exp/` path.
+This will link the OCF library to this location and compile it together with the context's main file into a single executable `./bench`. Please do all the following work under this `ul-exp/` path.
 
 
 ## Throughput Benchmarking
 
-First, set up the cache SSD and core SSD configurations in `cache-ssd.conf` and `core-ssd.conf` (the default is good enough). Ensure that the `PAGE_ENABLE_DATA` option in both configs are set to `0`. Then, start cache and core FlashSim devices by:
+### Cache & Core Flashsim Instances
+
+First, set up the cache SSD and core SSD configurations in `cache-ssd.conf` and `core-ssd.conf` (the default should be good enough). Ensure that the `PAGE_ENABLE_DATA` option in both configs are set to `0`. Then, start cache and core FlashSim devices by:
 
 ```bash
 # In shell 1:
-$ ./run-flashsim.sh cache  # Compiles flashsim on the first invocation
+$ ./run-flashsim.sh cache
+  # Compiles flashsim on the first invocation
 
 # In shell 2:
 $ ./run-flashsim.sh core
@@ -96,19 +101,26 @@ $ ./run-flashsim.sh core
 
 Make sure the current file system type is valid for creating UNIX-domain sockets required by Flashsim, otherwise `bind()` fails.
 
+### Doing the Throughput Benchmark
+
 Then, in yet another shell:
 
 ```bash
 # In shell 3:
-$ ./tp-benchmark.sh mode intensity read_percentage hit_ratio  # E.g., ./tp-benchmark mfwa 12000 100 99
-Where:
-    mode := pt|wa|wb|wt|mfwa|mfwb|mfwt
-    intensity (reqs/second) must be a multiple of 10
-    read_percentage := 100|95|50|0
-    hit_ratio := 99|95|80
+$ ./tp-benchmark.sh MODE INTENSITY READ_PERCENTAGE HIT_RATIO 
+  # Where:
+  #    mode := pt|wa|wb|wt|mfwa|mfwb|mfwt
+  #    intensity (reqs/sec) must be a multiple of 10
+  #    read_percentage := 100|95|50|0
+  #    hit_ratio := 99|95|80
+  # E.g., ./tp-benchmark mfwa 12000 100 99
 ```
 
-This will generate a result txt file under `result/` with proper filename. After several rounds of experiments with different parameters, to visualize all the result txts over time, do:
+This will generate a result txt file under `result/` with proper filename.
+
+### Visualizing the Results Over Time
+
+After several rounds of experiments with different parameters, to visualize all the result txts over time, do:
 
 ```bash
 $ python3 plot-results.py
@@ -116,34 +128,29 @@ $ python3 plot-results.py
 
 Each experiment result txt will produce a corresponding png image under `result/`.
 
+### Seeing the Effects of NHC
+
 NHC adapts to redirect an appropriate amount of excessive traffic to the core device when the request intensity goes over the cache device's max bandwidth. The core device, in this case, helps to answer some of the requests (extra throughput) and possibly also relieves contention at the cache device (maintaining cache at its optimal throughput). For example, the following two settings reveal of benefits of NHC:
 
 - Original write-around (`wa`) with intensity 12000 reqs/sec, 100% read, 99% hit rate: ~30 MiB/s throughput at cache;
 - Non-hierarchical write-around (`mfwa`) with the same parameters: ~31 MiB/s throughput at cache + ~10 MiB/s at core.
 
-## Fuzzy Testing
 
-Ensure that the `PAGE_ENABLE_DATA` option in both cache and core FlashSim config files are set to `1`. Then, start cache and core FlashSim devices by:
+## More on Demo Usage
 
-```bash
-# In shell 1:
-$ ./run-flashsim.sh cache
+### Fuzzy Testing
 
-# In shell 2:
-$ ./run-flashsim.sh core
-```
+Ensure that the `PAGE_ENABLE_DATA` option in both cache and core FlashSim config files are set to `1`. Then, start cache and core FlashSim devices in two shells in the same way as in normal benchmarking.
 
 Then, in yet another shell:
 
 ```bash
 # In shell 3:
-$ ./bench <mode> fuzzy  # E.g., ./bench mfwa fuzzy
-Where:
-    mode := pt|wa|wb|wt|mfwa|mfwb|mfwt
+$ ./bench MODE fuzzy
+  # E.g., ./bench mfwa fuzzy
 ```
 
-
-## Adding a New Benchmark
+### Adding a New Benchmark
 
 To add a new benchmarking experiment called `new_bench` for example, do:
 
