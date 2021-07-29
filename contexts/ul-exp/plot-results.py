@@ -17,7 +17,7 @@ import os
 resfiles = []
 for filename in os.listdir("./result/"):
     if filename.startswith("bench-") and filename.endswith(".txt"):
-        resfiles.append(filename)
+        resfiles.append("result/" + filename)
 
 
 for filename in resfiles:

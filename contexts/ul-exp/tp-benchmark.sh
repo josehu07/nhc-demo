@@ -15,7 +15,16 @@ if [[ $# -ne 4 ]]; then
 fi
 
 
-./bench $1 throughput $2 $3 $4 > result/bench-int$2-read$3-hit$4-$1.txt
+if [[ ! -d result ]]; then
+    mkdir result
+fi
+
+if [[ ! -d logs ]]; then
+    mkdir logs
+fi
+
+
+./bench $1 throughput $2 $3 $4 | tee result/bench-int$2-read$3-hit$4-$1.txt
 
 
 if [[ $? -ne 0 ]]; then
